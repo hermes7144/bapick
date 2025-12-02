@@ -1,77 +1,164 @@
-import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { Text } from '@/components/ui/text';
-import { Link, Stack } from 'expo-router';
-import { MoonStarIcon, StarIcon, SunIcon } from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
-import * as React from 'react';
-import { Image, type ImageStyle, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import MapView, { Marker, Region } from 'react-native-maps';
+import { supabase } from '@/api/supabase';
+import { NearbyDiscountedStoreInfo } from '@/types/NearbyDiscountedStoreInfo'; 
+import DiscountStoreFinder from '@/components/DiscountStoreFinder'; // 목록 컴포넌트
+import * as Location from 'expo-location';
 
-const LOGO = {
-  light: require('@/assets/images/react-native-reusables-light.png'),
-  dark: require('@/assets/images/react-native-reusables-dark.png'),
-};
-
-const SCREEN_OPTIONS = {
-  title: 'React Native Reusables',
-  headerTransparent: true,
-  headerRight: () => <ThemeToggle />,
-};
-
-const IMAGE_STYLE: ImageStyle = {
-  height: 76,
-  width: 76,
-};
+// 가정된 위치 (GPS 실패 또는 초기 로딩 시 중심점)
+const INITIAL_LAT = 35.156177; 
+const INITIAL_LNG = 129.059142; 
+const MAX_RADIUS = 3000; // 3km 반경
 
 export default function Screen() {
-  const { colorScheme } = useColorScheme();
+  const [discountStores, setDiscountStores] = useState<NearbyDiscountedStoreInfo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
+  
+  // 맵 초기 영역 설정
+  const initialRegion: Region = {
+    latitude: userLocation?.latitude || INITIAL_LAT,
+    longitude: userLocation?.longitude || INITIAL_LNG,
+    latitudeDelta: 0.05, 
+    longitudeDelta: 0.05,
+  };
 
-  return (
-    <>
-      <Stack.Screen options={SCREEN_OPTIONS} />
-      <View className="flex-1 items-center justify-center gap-8 p-4">
-        <Image source={LOGO[colorScheme ?? 'light']} style={IMAGE_STYLE} resizeMode="contain" />
-        <View className="gap-2 p-4">
-          <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-            1. Edit <Text variant="code">app/index.tsx</Text> to get started.
-          </Text>
-          <Text className="ios:text-foreground font-mono text-sm text-muted-foreground">
-            2. Save to see your changes instantly.
-          </Text>
-        </View>
-        <View className="flex-row gap-2">
-          <Link href="https://reactnativereusables.com" asChild>
-            <Button>
-              <Text>Browse the Docs</Text>
-            </Button>
-          </Link>
-          <Link href="https://github.com/founded-labs/react-native-reusables" asChild>
-            <Button variant="ghost">
-              <Text>Star the Repo</Text>
-              <Icon as={StarIcon} />
-            </Button>
-          </Link>
-        </View>
-      </View>
-    </>
-  );
-}
+  // 위치 권한 요청 함수 (재사용 가능)
+  const requestLocationPermission = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.error('Permission to access location was denied');
+      return false;
+    }
+    return true;
+  };
 
-const THEME_ICONS = {
-  light: SunIcon,
-  dark: MoonStarIcon,
+const getCurrentLocation = async () => {
+    // 🚩 __DEV__ 플래그로 자동 감지
+    const IS_DEV_MODE = __DEV__; 
+
+    
+    // 1. 개발 모드일 때 (MOCK)
+    if (IS_DEV_MODE) {
+        console.log('🚧 DEV MODE: Using predefined initial location.');
+        const defaultLoc = { latitude: INITIAL_LAT, longitude: INITIAL_LNG };
+        setUserLocation(defaultLoc);
+        return defaultLoc;
+    }
+    
+    // 2. 프로덕션 모드일 때 (REAL GPS)
+    const permissionGranted = await requestLocationPermission();
+    
+    if (permissionGranted) {
+      try {
+        let location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+        const currentLoc = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        };
+        setUserLocation(currentLoc); 
+        return currentLoc;
+      } catch (error) {
+        console.error('Error getting real location:', error);
+        
+        // 실제 GPS 실패 시: 가정 위치로 대체 (최악의 경우)
+        const defaultLoc = { latitude: INITIAL_LAT, longitude: INITIAL_LNG };
+        setUserLocation(defaultLoc);
+        return defaultLoc;
+      }
+    } else {
+        console.warn('Location permission denied. Using initial default location.');
+        // 권한 거부 시: 가정 위치로 대체
+        const defaultLoc = { latitude: INITIAL_LAT, longitude: INITIAL_LNG };
+        setUserLocation(defaultLoc);
+        return defaultLoc;
+    }
 };
 
-function ThemeToggle() {
-  const { colorScheme, toggleColorScheme } = useColorScheme();
+
+  // 데이터 조회 로직
+  useEffect(() => {
+    if (!userLocation) return; 
+
+    const fetchDiscountStores = async () => {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .rpc('get_nearby_discounted_stores', { 
+          user_lat: userLocation.latitude, 
+          user_lng: userLocation.longitude,
+          max_radius_meters: MAX_RADIUS, 
+        });
+        
+      if (error) {
+        console.error(`할인 매장 조회 오류:`, error);
+        setDiscountStores([]);
+      } else {
+        setDiscountStores(data as NearbyDiscountedStoreInfo[]); 
+      }
+      
+      setLoading(false);
+    };
+
+    fetchDiscountStores();
+  }, [userLocation]); // userLocation이 변경될 때마다 재조회
+
+  // 컴포넌트 마운트 시 위치 권한 요청 및 위치 가져오기
+  useEffect(() => {
+    getCurrentLocation();
+  }, []);
+
+
+  if (loading && !userLocation) {
+    return <ActivityIndicator size="large" style={styles.loading} color="#0000ff" />;
+  }
+
 
   return (
-    <Button
-      onPressIn={toggleColorScheme}
-      size="icon"
-      variant="ghost"
-      className="ios:size-9 rounded-full web:mx-4">
-      <Icon as={THEME_ICONS[colorScheme ?? 'light']} className="size-5" />
-    </Button>
+    <View style={styles.container}>
+      {/* 2. MapView 렌더링 */}
+      <MapView
+        style={styles.map}
+        initialRegion={initialRegion}
+        // userLocation이 잡혔을 때만 region을 설정하여 지도 중심점 이동
+        region={userLocation ? initialRegion : undefined} 
+        showsUserLocation={true} 
+      >
+        {/* 마커 표시 */}
+        {!loading && discountStores.map((store) => (
+          <Marker
+            key={store.store_id} 
+            coordinate={{
+              latitude: store.latitude,
+              longitude: store.longitude,
+            }}
+            title={store.store_name}
+            description={`이벤트 ${store.events_list.length}개 | 거리: ${(store.distance_meters / 1000).toFixed(2)} km`}
+            pinColor={store.events_list.length > 0 ? 'red' : 'blue'} 
+          />
+        ))}
+      </MapView>
+
+      {/* 3. 할인 매장 목록 (DiscountStoreFinder) 렌더링 추가 */}
+      <View style={styles.listContainer}>
+          {loading ? (
+              <ActivityIndicator size="small" color="#0000ff" />
+          ) : (
+              <DiscountStoreFinder 
+                  discountStores={discountStores} 
+                  loading={loading} // 사실상 이 시점에는 false
+                  maxRadius={MAX_RADIUS}
+              />
+          )}
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  map: { height: '50%', width: '100%' }, 
+  listContainer: { flex: 1, padding: 10 }, 
+  loading: { flex: 1, justifyContent: 'center' }
+});
