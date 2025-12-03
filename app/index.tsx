@@ -6,6 +6,8 @@ import { NearbyDiscountedStoreInfo } from '@/types/NearbyDiscountedStoreInfo';
 import DiscountStoreFinder from '@/components/DiscountStoreFinder'; // 목록 컴포넌트
 import * as Location from 'expo-location';
 import { fetchNearbyStoresWithEvents } from '@/api/stores';
+import * as Updates from "expo-updates";
+console.log(Updates.channel);
 
 // 가정된 위치 (GPS 실패 또는 초기 로딩 시 중심점)
 const INITIAL_LAT = 35.156177;
@@ -136,12 +138,12 @@ export default function Screen() {
         {loading ? (
           <ActivityIndicator size="small" color="#0000ff" />
         ) : (
-          // <DiscountStoreFinder
-          //   discountStores={discountStores}
-          //   loading={loading} // 사실상 이 시점에는 false
-          //   maxRadius={MAX_RADIUS}
-          // />
-          <></>
+          <DiscountStoreFinder
+            discountStores={discountStores}
+            loading={loading} // 사실상 이 시점에는 false
+            maxRadius={MAX_RADIUS}
+          />
+          
         )}
       </View>
     </View>

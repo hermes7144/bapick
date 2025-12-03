@@ -74,4 +74,7 @@ If you enjoy using React Native Reusables, please consider giving it a ⭐ on [G
 
 ```
 eas build -p android --profile preview
+
+eas update --channel preview
+
 ```
