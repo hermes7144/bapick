@@ -29,7 +29,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.hermes7144.bapick"
     },
     "web": {
       "bundler": "metro",
@@ -41,6 +42,18 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b638677d-f8eb-4514-9180-e21ed8a11acc"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b638677d-f8eb-4514-9180-e21ed8a11acc"
     }
   }
 }
