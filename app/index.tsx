@@ -143,7 +143,7 @@ export default function Screen() {
           //   loading={loading} // 사실상 이 시점에는 false
           //   maxRadius={MAX_RADIUS}
           // />
-          
+          <></>
         )}
       </View>
     </View>
