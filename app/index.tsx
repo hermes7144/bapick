@@ -138,11 +138,11 @@ export default function Screen() {
         {loading ? (
           <ActivityIndicator size="small" color="#0000ff" />
         ) : (
-          <DiscountStoreFinder
-            discountStores={discountStores}
-            loading={loading} // 사실상 이 시점에는 false
-            maxRadius={MAX_RADIUS}
-          />
+          // <DiscountStoreFinder
+          //   discountStores={discountStores}
+          //   loading={loading} // 사실상 이 시점에는 false
+          //   maxRadius={MAX_RADIUS}
+          // />
           
         )}
       </View>

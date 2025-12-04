@@ -31,7 +31,7 @@ const DiscountStoreFinder: React.FC<DiscountStoreFinderProps> = ({ discountStore
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>💰 내 주변 할인 중인 가게 ({maxRadius / 1000}km 반경)</Text>
+      <Text style={styles.header}>💰 내 주변 할인 중인 가게 ({maxRadius / 1000}km 반경!)</Text>
       
       {/* 로딩 인디케이터는 부모에서 처리했으나, 혹시 모를 경우를 대비해 유지 */}
       {/* {loading && <ActivityIndicator size="small" color="#0000ff" />} */}
