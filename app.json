@@ -20,12 +20,16 @@
       "supportsTablet": true
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAF51oL_bBiEys7hi7usVudZ_5aZd3L39c"
+        }
+      },
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.hermes7144.bapick"
+      }
     },
     "web": {
       "bundler": "metro",
