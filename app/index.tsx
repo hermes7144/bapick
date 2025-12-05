@@ -6,13 +6,17 @@ import { NearbyDiscountedStoreInfo } from '@/types/NearbyDiscountedStoreInfo';
 import DiscountStoreFinder from '@/components/DiscountStoreFinder'; // 목록 컴포넌트
 import * as Location from 'expo-location';
 import { fetchNearbyStoresWithEvents } from '@/api/stores';
-import * as Updates from "expo-updates";
-console.log(Updates.channel);
+import * as SplashScreen from 'expo-splash-screen';
+import * as Updates from 'expo-updates';
+
 
 // 가정된 위치 (GPS 실패 또는 초기 로딩 시 중심점)
 const INITIAL_LAT = 35.156177;
 const INITIAL_LNG = 129.059142;
 const MAX_RADIUS = 3000; // 3km 반경
+
+SplashScreen.preventAutoHideAsync();
+
 
 export default function Screen() {
   const [discountStores, setDiscountStores] = useState<NearbyDiscountedStoreInfo[]>([]);
@@ -20,6 +24,25 @@ export default function Screen() {
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(
     null
   );
+
+  useEffect(() => {
+      async function prepare() {
+        try {
+          const update = await Updates.checkForUpdateAsync();
+          if (update.isAvailable) {
+            await Updates.fetchUpdateAsync();
+            await Updates.reloadAsync();
+          }
+        } catch (e) {
+          console.log(e);
+        } finally {
+          await SplashScreen.hideAsync();
+        }
+      }
+
+      prepare();
+    }, []);
+
 
   // 맵 초기 영역 설정
   const initialRegion: Region = {
@@ -117,7 +140,6 @@ export default function Screen() {
         // userLocation이 잡혔을 때만 region을 설정하여 지도 중심점 이동
         region={userLocation ? initialRegion : undefined}
         showsUserLocation={true}>
-        {/* 마커 표시 */}
         {!loading &&
           discountStores.map((store) => (
             <Marker
@@ -138,12 +160,13 @@ export default function Screen() {
         {loading ? (
           <ActivityIndicator size="small" color="#0000ff" />
         ) : (
-          // <DiscountStoreFinder
-          //   discountStores={discountStores}
-          //   loading={loading} // 사실상 이 시점에는 false
-          //   maxRadius={MAX_RADIUS}
-          // />
-          <></>
+          <>
+          <DiscountStoreFinder
+            discountStores={discountStores}
+            loading={loading} // 사실상 이 시점에는 false
+            maxRadius={MAX_RADIUS}
+          />
+          </>
         )}
       </View>
     </View>
